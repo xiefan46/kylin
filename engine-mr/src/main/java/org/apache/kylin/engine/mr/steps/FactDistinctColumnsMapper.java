@@ -162,8 +162,7 @@ public class FactDistinctColumnsMapper<KEYIN> extends FactDistinctColumnsMapperB
             tmpbuf.put(Bytes.toBytes(fieldValue));
             outputKey.set(tmpbuf.array(), 0, tmpbuf.position());
             DataType type = factDictCols.get(i).getType();
-            sortableKey.setText(outputKey);
-            sortableKey.setTypeId(type);
+            sortableKey.init(outputKey, type);
             //judge type
             context.write(sortableKey, EMPTY_TEXT);
 
@@ -185,8 +184,7 @@ public class FactDistinctColumnsMapper<KEYIN> extends FactDistinctColumnsMapperB
                     tmpbuf.put(MARK_FOR_PARTITION_COL);
                     tmpbuf.put(Bytes.toBytes(fieldValue));
                     outputKey.set(tmpbuf.array(), 0, tmpbuf.position());
-                    sortableKey.setText(outputKey);
-                    sortableKey.setTypeId((byte)0);
+                    sortableKey.init(outputKey, (byte) 0);
                     context.write(sortableKey, EMPTY_TEXT);
                 }
             }
@@ -243,8 +241,7 @@ public class FactDistinctColumnsMapper<KEYIN> extends FactDistinctColumnsMapperB
                 hllBuf.clear();
                 hll.writeRegisters(hllBuf);
                 outputValue.set(hllBuf.array(), 0, hllBuf.position());
-                sortableKey.setText(outputKey);
-                sortableKey.setTypeId((byte)0);
+                sortableKey.init(outputKey, (byte) 0);
                 context.write(sortableKey, outputValue);
             }
         }

@@ -48,7 +48,7 @@ public class SelfDefineSortableKey implements WritableComparable<SelfDefineSorta
         init(key, getTypeIdByDatatype(type));
     }
 
-    private void init(Text key, byte typeId) {
+    public void init(Text key, byte typeId) {
         this.typeId = typeId;
         if (isNumberFamily()) {
             if (isIntegerFamily()) {
@@ -59,6 +59,10 @@ public class SelfDefineSortableKey implements WritableComparable<SelfDefineSorta
         } else {
             this.keyInObj = key;
         }
+    }
+
+    public void init(Text key, DataType type) {
+        init(key, getTypeIdByDatatype(type));
     }
 
     @Override
@@ -124,13 +128,6 @@ public class SelfDefineSortableKey implements WritableComparable<SelfDefineSorta
         this.typeId = typeId;
     }
 
-    public void setTypeId(DataType type) {
-        this.typeId = getTypeIdByDatatype(type);
-    }
-
-    public void setText(Text text) {
-        init(text, this.typeId);
-    }
 }
 
 

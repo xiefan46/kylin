@@ -182,8 +182,7 @@ public class SelfDefineSortableKeyTest {
         List<SelfDefineSortableKey> newKeyList = new ArrayList<>();
         for (String str : strNumList) {
             SelfDefineSortableKey key = new SelfDefineSortableKey();
-            key.setText(new Text(str));
-            key.setTypeId((byte) TypeFlag.DOUBLE_FAMILY_TYPE.ordinal());
+            key.init(new Text(str), (byte) TypeFlag.DOUBLE_FAMILY_TYPE.ordinal());
             newKeyList.add(key);
         }
         System.out.println("start to test new sortable key");
