@@ -31,6 +31,7 @@ import org.apache.kylin.cube.cuboid.CuboidScheduler;
 import org.apache.kylin.engine.mr.common.BatchConstants;
 import org.apache.kylin.measure.BufferedMeasureCodec;
 import org.apache.kylin.measure.hllc.HLLCounter;
+import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,6 +41,7 @@ import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hasher;
 import com.google.common.hash.Hashing;
 
+
 /**
  */
 public class FactDistinctColumnsMapper<KEYIN> extends FactDistinctColumnsMapperBase<KEYIN, Object> {
@@ -48,7 +50,9 @@ public class FactDistinctColumnsMapper<KEYIN> extends FactDistinctColumnsMapperB
 
     public static enum RawDataCounter {
         BYTES
-    };
+    }
+
+    ;
 
     protected boolean collectStatistics = false;
     protected CuboidScheduler cuboidScheduler = null;
@@ -67,6 +71,8 @@ public class FactDistinctColumnsMapper<KEYIN> extends FactDistinctColumnsMapperB
 
     private int partitionColumnIndex = -1;
     private boolean needFetchPartitionCol = true;
+
+    private SelfDefineSortableKey sortableKey = new SelfDefineSortableKey();
 
     @Override
     protected void setup(Context context) throws IOException {
@@ -137,7 +143,6 @@ public class FactDistinctColumnsMapper<KEYIN> extends FactDistinctColumnsMapperB
         String[] row = flatTableInputFormat.parseMapperInput(record);
 
         context.getCounter(RawDataCounter.BYTES).increment(countSizeInBytes(row));
-
         for (int i = 0; i < factDictCols.size(); i++) {
             String fieldValue = row[dictionaryColumnIndex[i]];
             if (fieldValue == null)
@@ -156,9 +161,10 @@ public class FactDistinctColumnsMapper<KEYIN> extends FactDistinctColumnsMapperB
             tmpbuf.put(Bytes.toBytes(reducerIndex)[3]);
             tmpbuf.put(Bytes.toBytes(fieldValue));
             outputKey.set(tmpbuf.array(), 0, tmpbuf.position());
+            DataType type = factDictCols.get(i).getType();
             sortableKey.setText(outputKey);
+            sortableKey.setTypeId(type);
             //judge type
-            sortableKey.setTypeIdByDatatype(factDictCols.get(i).getType());
             context.write(sortableKey, EMPTY_TEXT);
 
             // log a few rows for troubleshooting
@@ -180,7 +186,7 @@ public class FactDistinctColumnsMapper<KEYIN> extends FactDistinctColumnsMapperB
                     tmpbuf.put(Bytes.toBytes(fieldValue));
                     outputKey.set(tmpbuf.array(), 0, tmpbuf.position());
                     sortableKey.setText(outputKey);
-                    sortableKey.setTypeId((byte) 0);
+                    sortableKey.setTypeId((byte)0);
                     context.write(sortableKey, EMPTY_TEXT);
                 }
             }
@@ -238,9 +244,10 @@ public class FactDistinctColumnsMapper<KEYIN> extends FactDistinctColumnsMapperB
                 hll.writeRegisters(hllBuf);
                 outputValue.set(hllBuf.array(), 0, hllBuf.position());
                 sortableKey.setText(outputKey);
-                sortableKey.setTypeId((byte) 0);
+                sortableKey.setTypeId((byte)0);
                 context.write(sortableKey, outputValue);
             }
         }
     }
+
 }

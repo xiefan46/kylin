@@ -39,7 +39,7 @@ import org.apache.kylin.dict.NumberDictionary;
 import org.apache.kylin.dict.NumberDictionaryBuilder;
 import org.apache.kylin.dict.NumberDictionaryForestBuilder;
 import org.apache.kylin.dict.TrieDictionaryForest;
-import org.apache.kylin.engine.mr.steps.SelfDefineSortableKey.TypeFlag;
+import org.apache.kylin.engine.mr.steps.SelfDefineSortableKeyOld.TypeFlag;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -63,19 +63,19 @@ public class NumberDictionaryForestTest {
 
     private void testData(List<String> list, TypeFlag flag) {
         //stimulate map-reduce job
-        ArrayList<SelfDefineSortableKey> keyList = createKeyList(list, (byte) flag.ordinal());
+        ArrayList<SelfDefineSortableKeyOld> keyList = createKeyList(list, (byte) flag.ordinal());
         Collections.sort(keyList);
         //build tree
         NumberDictionaryForestBuilder b = new NumberDictionaryForestBuilder(0, 0);
 
-        for (SelfDefineSortableKey key : keyList) {
+        for (SelfDefineSortableKeyOld key : keyList) {
             String fieldValue = printKey(key);
             b.addValue(fieldValue);
         }
         TrieDictionaryForest<String> dict = b.build();
         dict.dump(System.out);
         ArrayList<Integer> resultIds = new ArrayList<>();
-        for (SelfDefineSortableKey key : keyList) {
+        for (SelfDefineSortableKeyOld key : keyList) {
             String fieldValue = getFieldValue(key);
             resultIds.add(dict.getIdFromValue(fieldValue));
             assertEquals(fieldValue, dict.getValueFromId(dict.getIdFromValue(fieldValue)));
@@ -221,9 +221,9 @@ public class NumberDictionaryForestTest {
         return list;
     }
 
-    private ArrayList<SelfDefineSortableKey> createKeyList(List<String> strNumList, byte typeFlag) {
+    private ArrayList<SelfDefineSortableKeyOld> createKeyList(List<String> strNumList, byte typeFlag) {
         int partationId = 0;
-        ArrayList<SelfDefineSortableKey> keyList = new ArrayList<>();
+        ArrayList<SelfDefineSortableKeyOld> keyList = new ArrayList<>();
         for (String str : strNumList) {
             ByteBuffer keyBuffer = ByteBuffer.allocate(4096);
             int offset = keyBuffer.position();
@@ -235,20 +235,20 @@ public class NumberDictionaryForestTest {
             //System.out.println("arrays toString:"+Arrays.toString(valueField));
             Text outputKey = new Text();
             outputKey.set(keyBuffer.array(), offset, keyBuffer.position() - offset);
-            SelfDefineSortableKey sortableKey = new SelfDefineSortableKey(typeFlag, outputKey);
+            SelfDefineSortableKeyOld sortableKey = new SelfDefineSortableKeyOld(typeFlag, outputKey);
             keyList.add(sortableKey);
         }
         return keyList;
     }
 
-    private String printKey(SelfDefineSortableKey key) {
+    private String printKey(SelfDefineSortableKeyOld key) {
         Text data = key.getText();
         String fieldValue = Bytes.toString(data.getBytes(), 1, data.getLength() - 1);
         System.out.println("type flag:" + key.getTypeId() + " fieldValue:" + fieldValue);
         return fieldValue;
     }
 
-    private String getFieldValue(SelfDefineSortableKey key) {
+    private String getFieldValue(SelfDefineSortableKeyOld key) {
         Text data = key.getText();
         return Bytes.toString(data.getBytes(), 1, data.getLength() - 1);
     }
