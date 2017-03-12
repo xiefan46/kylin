@@ -62,26 +62,9 @@ public class ITHDFSResourceStoreTest extends HBaseMetadataTestCase {
 
     @Test
     public void testBasic() throws Exception {
-        String path = workingDir + "/metadata_test1";
-        doTestWithPath(path);
-    }
-
-    @Test
-    public void testQalifiedName() throws Exception {
-        String path = "hdfs://" + workingDir + "/metadata_test2";
-        doTestWithPath(path);
-    }
-
-    @Test
-    public void testFullQalifiedName() throws Exception {
-        String path = fs.getUri() + workingDir + "/metadata_test3";
-        doTestWithPath(path);
-    }
-
-    private void doTestWithPath(String path) throws Exception {
         ResourceStoreTest.testAStore(ResourceStoreTest.mockUrl("hdfs", kylinConfig), kylinConfig);
-        assertTrue(fs.exists(new Path(path)));
     }
+
 
     @Ignore
     @Test
