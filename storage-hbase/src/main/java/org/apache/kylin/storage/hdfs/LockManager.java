@@ -27,6 +27,7 @@ import org.apache.curator.framework.recipes.locks.InterProcessMutex;
 import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.storage.hbase.util.ZookeeperDistributedJobLock;
+import org.apache.kylin.storage.hbase.util.ZookeeperUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,7 +53,7 @@ public class LockManager {
     public LockManager(KylinConfig config, String lockRootPath) throws Exception {
         this.config = config;
         this.lockRootPath = lockRootPath;
-        String zkConnectString = getZKConnectString(config);
+        String zkConnectString = ZookeeperUtil.getZKConnectString();
         logger.info("zk connection string:" + zkConnectString);
         if (StringUtils.isEmpty(zkConnectString)) {
             throw new IllegalArgumentException("ZOOKEEPER_QUORUM is empty!");
@@ -86,17 +87,6 @@ public class LockManager {
 
     }
 
-    private static String getZKConnectString(KylinConfig kylinConfig) {
-        final String host = kylinConfig.getZooKeeperHost();
-        final String port = kylinConfig.getZooKeeperPort();
-        return StringUtils.join(Iterables.transform(Arrays.asList(host.split(",")), new Function<String, String>() {
-            @Nullable
-            @Override
-            public String apply(String input) {
-                return input + ":" + port;
-            }
-        }), ",");
-    }
 
     public String getLockPath(String resourceName) {
         if (!resourceName.startsWith("/"))

@@ -24,6 +24,7 @@ import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.apache.curator.utils.CloseableUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HBaseMetadataTestCase;
+import org.apache.kylin.storage.hbase.util.ZookeeperUtil;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -59,15 +60,12 @@ public class ITLockManagerTest extends HBaseMetadataTestCase {
 
     private static final Logger logger = LoggerFactory.getLogger(ITLockManagerTest.class);
 
-    private String zkConnection;
-
     @Before
     public void setup() throws Exception {
         this.createTestMetadata();
         kylinConfig = KylinConfig.getInstanceFromEnv();
         RetryPolicy retryPolicy = new ExponentialBackoffRetry(1000, 3);
-        zkConnection = kylinConfig.getZooKeeperHost() + ":" + kylinConfig.getZooKeeperPort();
-        zkClient = CuratorFrameworkFactory.newClient(zkConnection, retryPolicy);
+        zkClient = CuratorFrameworkFactory.newClient(ZookeeperUtil.getZKConnectString(), retryPolicy);
         zkClient.start();
         manager = new LockManager(kylinConfig, lockRootPath);
         logger.info("nodes in lock root : " + zkClient.getChildren().forPath(lockRootPath));
@@ -102,7 +100,7 @@ public class ITLockManagerTest extends HBaseMetadataTestCase {
         // FakeLimitedResource simulates some external resource that can only be access by one process at a time
         final FakeLimitedResource resource = new FakeLimitedResource();
         ExecutorService service = Executors.newFixedThreadPool(QTY);
-        final TestingServer server = new TestingServer(zkConnection);
+        final TestingServer server = new TestingServer(ZookeeperUtil.getZKConnectString());
         final List<FutureTask<Void>> tasks = new ArrayList<>();
         try {
             for (int i = 0; i < QTY; ++i) {
