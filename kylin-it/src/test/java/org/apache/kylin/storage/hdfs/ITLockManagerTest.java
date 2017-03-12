@@ -46,7 +46,7 @@ import static org.junit.Assert.assertEquals;
 public class ITLockManagerTest extends HBaseMetadataTestCase {
 
 
-    private String zkConnection = "sandbox:2181";
+    private String zkConnection = "localhost:2181";
 
     private KylinConfig kylinConfig;
 
