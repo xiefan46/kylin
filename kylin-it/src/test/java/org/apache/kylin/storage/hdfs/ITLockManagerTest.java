@@ -45,9 +45,6 @@ import static org.junit.Assert.assertEquals;
 
 public class ITLockManagerTest extends HBaseMetadataTestCase {
 
-
-    private String zkConnection = "localhost:2181";
-
     private KylinConfig kylinConfig;
 
     private CuratorFramework zkClient;
@@ -62,11 +59,14 @@ public class ITLockManagerTest extends HBaseMetadataTestCase {
 
     private static final Logger logger = LoggerFactory.getLogger(ITLockManagerTest.class);
 
+    private String zkConnection;
+
     @Before
     public void setup() throws Exception {
         this.createTestMetadata();
         kylinConfig = KylinConfig.getInstanceFromEnv();
         RetryPolicy retryPolicy = new ExponentialBackoffRetry(1000, 3);
+        zkConnection = kylinConfig.getZooKeeperHost() + ":" + kylinConfig.getZooKeeperPort();
         zkClient = CuratorFrameworkFactory.newClient(zkConnection, retryPolicy);
         zkClient.start();
         manager = new LockManager(kylinConfig, lockRootPath);
