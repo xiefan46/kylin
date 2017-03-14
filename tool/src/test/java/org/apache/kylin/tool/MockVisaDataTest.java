@@ -47,6 +47,8 @@ public class MockVisaDataTest {
 
     private static final Random rand = new Random(System.currentTimeMillis());
 
+    private static char[] charAndnum = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".toCharArray();
+
     private String[] colNames = {"s_1_t", "i_2_v", "s_3_t", "i_4_m", "s_5_s", "s_6_s", "i_7_t",
             "s_8_s", "s_9_t", "s_10_s", "s_11_s", "i_12_v", "i_13_m", "s_14_t", "i_15_m"};
     //actual type of col 4 , col 15 is double
@@ -70,7 +72,7 @@ public class MockVisaDataTest {
             switch (parse.get(COL_TYPE)) {
                 case "s":   //varchar
                     for (int i = 0; i < cardinality; i++) {
-                        range.add(UUID.randomUUID().toString());
+                        range.add(mockRandShortStr(rand.nextInt(5)));
                     }
                     allData.add(range);
                     break;
@@ -125,7 +127,7 @@ public class MockVisaDataTest {
     public void genDataIntoFile() throws Exception {
         String dir = getFilePath();
         int rowNum = getRowNum();
-        String file = dir + "output_" + rowNum;
+        String file = dir + "output_short_str" + rowNum;
         System.out.println(file);
         File f = new File(file);
         if (f.exists())
@@ -186,6 +188,15 @@ public class MockVisaDataTest {
     private int getRowNum() throws Exception {
         String str = properties.getProperty("row_num");
         return Integer.parseInt(str);
+    }
+
+    private static String mockRandShortStr(int length) {
+        length = length + 1; //ensure not empty
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < length; i++) {
+            sb.append(charAndnum[rand.nextInt(charAndnum.length)]);
+        }
+        return sb.toString();
     }
 
 }
