@@ -966,8 +966,8 @@ abstract public class KylinConfigBase implements Serializable {
         return getOptional("kylin.storage.jdbc-driver-class", "com.mysql.jdbc.Driver");
     }
 
-    public String getJdbcUrl(){
-        return getOptional("kylin.storage.jdbc-url","jdbc:mysql://sandbox:3306/kylin");
+    public String getJdbcUrl() {
+        return getOptional("kylin.storage.jdbc-url", "jdbc:mysql://sandbox:3306/kylin");
     }
 
 }
