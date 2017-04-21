@@ -79,6 +79,11 @@ public class CubeStatsReader {
     final Map<Long, HLLCounter> cuboidRowEstimatesHLL;
     final CuboidScheduler cuboidScheduler;
 
+    boolean isUseNewEstimateAlgorithm = false;
+
+    private int rowCount;
+
+
     public CubeStatsReader(CubeSegment cubeSegment, KylinConfig kylinConfig) throws IOException {
         ResourceStore store = ResourceStore.getStore(kylinConfig);
         cuboidScheduler = new CuboidScheduler(cubeSegment.getCubeDesc());
@@ -107,6 +112,10 @@ public class CubeStatsReader {
                     mapperOverlapRatio = Bytes.toDouble(value.getBytes());
                 } else if (key.get() == -2) {
                     mapperNumber = Bytes.toInt(value.getBytes());
+                } else if (key.get() == -3) {
+                    this.isUseNewEstimateAlgorithm = true;
+                    rowCount = Bytes.toInt(value.getBytes());
+
                 } else if (key.get() > 0) {
                     HLLCounter hll = new HLLCounter(kylinConfig.getCubeStatsHLLPrecision());
                     ByteArray byteArray = new ByteArray(value.getBytes());
@@ -201,7 +210,7 @@ public class CubeStatsReader {
         KylinConfig kylinConf = cubeSegment.getConfig();
 
         long mask = Long.highestOneBit(baseCuboidId);
-        long parentCuboidIdActualLength = (long)Long.SIZE - Long.numberOfLeadingZeros(baseCuboidId);
+        long parentCuboidIdActualLength = (long) Long.SIZE - Long.numberOfLeadingZeros(baseCuboidId);
         for (int i = 0; i < parentCuboidIdActualLength; i++) {
             if ((mask & cuboidId) > 0) {
                 rowkeyLength += rowKeyColumnLength.get(i); //colIO.getColumnLength(columnList.get(i));

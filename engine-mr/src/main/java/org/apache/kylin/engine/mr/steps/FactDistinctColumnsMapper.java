@@ -23,7 +23,10 @@ import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.List;
 
+import org.apache.hadoop.io.BytesWritable;
+import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
 import org.apache.kylin.common.util.Bytes;
 import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.cube.cuboid.CuboidScheduler;
@@ -74,6 +77,8 @@ public class FactDistinctColumnsMapper<KEYIN> extends FactDistinctColumnsMapperB
 
     private SelfDefineSortableKey sortableKey = new SelfDefineSortableKey();
 
+    private MultipleOutputs mos;
+
     @Override
     protected void setup(Context context) throws IOException {
         super.setup(context);
@@ -111,6 +116,8 @@ public class FactDistinctColumnsMapper<KEYIN> extends FactDistinctColumnsMapperB
             } else {
                 needFetchPartitionCol = true;
             }
+
+            mos = new MultipleOutputs(context);
         }
     }
 
@@ -248,6 +255,10 @@ public class FactDistinctColumnsMapper<KEYIN> extends FactDistinctColumnsMapperB
                 sortableKey.init(outputKey, (byte) 0);
                 context.write(sortableKey, outputValue);
             }
+            // total row count at key -3
+            String statisticsFileName = BatchConstants.CFG_OUTPUT_STATISTICS + "/" + BatchConstants.CFG_OUTPUT_STATISTICS;
+            mos.write(BatchConstants.CFG_OUTPUT_STATISTICS, new LongWritable(-3), new BytesWritable(Bytes.toBytes(rowCount)), statisticsFileName);
+            mos.close();
         }
     }
 

@@ -133,7 +133,7 @@ public class FactDistinctColumnsReducer extends KylinReducer<SelfDefineSortableK
             if (cubeDesc.getDictionaryBuilderClass(col) != null) { // only works with default dictionary builder
                 buildDictInReducer = false;
             }
-            if(config.getUHCReducerCount() > 1) {
+            if (config.getUHCReducerCount() > 1) {
                 int[] uhcIndex = CubeManager.getInstance(config).getUHCIndex(cubeDesc);
                 int colIndex = reducerIdToColumnIndex.get(taskId);
                 if (uhcIndex[colIndex] == 1)
