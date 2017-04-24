@@ -18,15 +18,11 @@
 
 package org.apache.kylin.engine.mr.steps;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.Collection;
-import java.util.List;
-
-import org.apache.hadoop.io.BytesWritable;
-import org.apache.hadoop.io.LongWritable;
+import com.google.common.collect.Lists;
+import com.google.common.hash.HashFunction;
+import com.google.common.hash.Hasher;
+import com.google.common.hash.Hashing;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
 import org.apache.kylin.common.util.Bytes;
 import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.cube.cuboid.CuboidScheduler;
@@ -39,10 +35,10 @@ import org.apache.kylin.metadata.model.TblColRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Lists;
-import com.google.common.hash.HashFunction;
-import com.google.common.hash.Hasher;
-import com.google.common.hash.Hashing;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.Collection;
+import java.util.List;
 
 
 /**
@@ -76,8 +72,6 @@ public class FactDistinctColumnsMapper<KEYIN> extends FactDistinctColumnsMapperB
     private boolean needFetchPartitionCol = true;
 
     private SelfDefineSortableKey sortableKey = new SelfDefineSortableKey();
-
-    private MultipleOutputs mos;
 
     @Override
     protected void setup(Context context) throws IOException {
@@ -117,7 +111,6 @@ public class FactDistinctColumnsMapper<KEYIN> extends FactDistinctColumnsMapperB
                 needFetchPartitionCol = true;
             }
 
-            mos = new MultipleOutputs(context);
         }
     }
 
@@ -255,10 +248,6 @@ public class FactDistinctColumnsMapper<KEYIN> extends FactDistinctColumnsMapperB
                 sortableKey.init(outputKey, (byte) 0);
                 context.write(sortableKey, outputValue);
             }
-            // total row count at key -3
-            String statisticsFileName = BatchConstants.CFG_OUTPUT_STATISTICS + "/" + BatchConstants.CFG_OUTPUT_STATISTICS;
-            mos.write(BatchConstants.CFG_OUTPUT_STATISTICS, new LongWritable(-3), new BytesWritable(Bytes.toBytes(rowCount)), statisticsFileName);
-            mos.close();
         }
     }
 
