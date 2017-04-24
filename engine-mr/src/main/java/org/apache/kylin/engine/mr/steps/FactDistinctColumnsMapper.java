@@ -67,6 +67,8 @@ public class FactDistinctColumnsMapper<KEYIN> extends FactDistinctColumnsMapperB
     private static final Text EMPTY_TEXT = new Text();
     public static final byte MARK_FOR_PARTITION_COL = (byte) 0xFE;
     public static final byte MARK_FOR_HLL = (byte) 0xFF;
+    public static final byte MARK_FOR_FACT_TABLE_ROW_COUNT = 0;
+    public static final byte MARK_FOR_HLL_COUNTER = 1;
 
     private int partitionColumnIndex = -1;
     private boolean needFetchPartitionCol = true;
@@ -236,19 +238,44 @@ public class FactDistinctColumnsMapper<KEYIN> extends FactDistinctColumnsMapperB
             // output each cuboid's hll to reducer, key is 0 - cuboidId
             HLLCounter hll;
             for (int i = 0; i < cuboidIds.length; i++) {
-                hll = allCuboidsHLL[i];
-
-                tmpbuf.clear();
-                tmpbuf.put(MARK_FOR_HLL); // one byte
-                tmpbuf.putLong(cuboidIds[i]);
-                outputKey.set(tmpbuf.array(), 0, tmpbuf.position());
-                hllBuf.clear();
-                hll.writeRegisters(hllBuf);
-                outputValue.set(hllBuf.array(), 0, hllBuf.position());
-                sortableKey.init(outputKey, (byte) 0);
-                context.write(sortableKey, outputValue);
+                context.write(getHllKey(cuboidIds[i]), getHllValue(allCuboidsHLL[i], hllBuf));
             }
+            //output row count for each mapper
+            context.write(getRowCountKey(), getRowCountValue());
         }
+    }
+
+    private SelfDefineSortableKey getHllKey(long cuboid) {
+        tmpbuf.clear();
+        tmpbuf.put(MARK_FOR_HLL); // one byte
+        tmpbuf.put(MARK_FOR_HLL_COUNTER);
+        tmpbuf.putLong(cuboid);
+        outputKey.set(tmpbuf.array(), 0, tmpbuf.position());
+        sortableKey.init(outputKey, (byte) 0);
+        return sortableKey;
+    }
+
+    private Text getHllValue(HLLCounter hll, ByteBuffer hllBuf) throws IOException {
+        hllBuf.clear();
+        hll.writeRegisters(hllBuf);
+        outputValue.set(hllBuf.array(), 0, hllBuf.position());
+        return outputValue;
+    }
+
+    private SelfDefineSortableKey getRowCountKey() {
+        tmpbuf.clear();
+        tmpbuf.put(MARK_FOR_HLL); // one byte
+        tmpbuf.put(MARK_FOR_FACT_TABLE_ROW_COUNT);
+        outputKey.set(tmpbuf.array(), 0, tmpbuf.position());
+        sortableKey.init(outputKey, (byte) 0);
+        return sortableKey;
+    }
+
+    private Text getRowCountValue() {
+        ByteBuffer buf = ByteBuffer.allocate(BufferedMeasureCodec.DEFAULT_BUFFER_SIZE);
+        buf.putLong(rowCount);
+        outputValue.set(buf.array(), 0, buf.position());
+        return outputValue;
     }
 
 

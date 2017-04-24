@@ -81,7 +81,7 @@ public class CubeStatsReader {
 
     boolean isUseNewEstimateAlgorithm = false;
 
-    private int rowCount;
+    private long factTableRowCount;
 
 
     public CubeStatsReader(CubeSegment cubeSegment, KylinConfig kylinConfig) throws IOException {
@@ -114,8 +114,7 @@ public class CubeStatsReader {
                     mapperNumber = Bytes.toInt(value.getBytes());
                 } else if (key.get() == -3) {
                     this.isUseNewEstimateAlgorithm = true;
-                    rowCount = Bytes.toInt(value.getBytes());
-
+                    factTableRowCount = Bytes.toLong(value.getBytes());
                 } else if (key.get() > 0) {
                     HLLCounter hll = new HLLCounter(kylinConfig.getCubeStatsHLLPrecision());
                     ByteArray byteArray = new ByteArray(value.getBytes());
@@ -150,7 +149,7 @@ public class CubeStatsReader {
     }
 
     public Map<Long, Long> getCuboidRowEstimatesHLL() {
-        return getCuboidRowCountMapFromSampling(cuboidRowEstimatesHLL, samplingPercentage);
+        return getCuboidRowCountMapFromSampling(cuboidRowEstimatesHLL, samplingPercentage, isUseNewEstimateAlgorithm, factTableRowCount);
     }
 
     // return map of Cuboid ID => MB
@@ -171,11 +170,29 @@ public class CubeStatsReader {
     }
 
     public static Map<Long, Long> getCuboidRowCountMapFromSampling(Map<Long, HLLCounter> hllcMap, int samplingPercentage) {
+        return getCuboidRowCountMapFromSampling(hllcMap, samplingPercentage, false, 0);
+    }
+
+    public static Map<Long, Long> getCuboidRowCountMapFromSampling(Map<Long, HLLCounter> hllcMap, int samplingPercentage, boolean isUseNewEstimateAlgorithm, long factTableRowCount) {
         Map<Long, Long> cuboidRowCountMap = Maps.newHashMap();
-        for (Map.Entry<Long, HLLCounter> entry : hllcMap.entrySet()) {
-            // No need to adjust according sampling percentage. Assumption is that data set is far
-            // more than cardinality. Even a percentage of the data should already see all cardinalities.
-            cuboidRowCountMap.put(entry.getKey(), entry.getValue().getCountEstimate());
+        if (isUseNewEstimateAlgorithm) {
+            for (Map.Entry<Long, HLLCounter> entry : hllcMap.entrySet()) {
+                long cuboid = entry.getKey();
+                long countEstimate = entry.getValue().getCountEstimate();
+                double percentage = samplingPercentage * 1.0 / 100;
+                double a = factTableRowCount * percentage * percentage;
+                long countEstimate2 = 0;
+                if (a != 0) {
+                    countEstimate2 = (long) Math.floor(countEstimate * countEstimate / a);
+                }
+                cuboidRowCountMap.put(cuboid, Math.max(countEstimate, countEstimate2));
+            }
+        } else {
+            for (Map.Entry<Long, HLLCounter> entry : hllcMap.entrySet()) {
+                // No need to adjust according sampling percentage. Assumption is that data set is far
+                // more than cardinality. Even a percentage of the data should already see all cardinalities.
+                cuboidRowCountMap.put(entry.getKey(), entry.getValue().getCountEstimate());
+            }
         }
         return cuboidRowCountMap;
     }

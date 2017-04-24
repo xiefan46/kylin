@@ -76,6 +76,7 @@ public class FactDistinctColumnsReducer extends KylinReducer<SelfDefineSortableK
     private int taskId;
     private boolean isPartitionCol = false;
     private int rowCount = 0;
+    private long factTableRowCount = 0;
 
     //local build dict
     private boolean buildDictInReducer;
@@ -84,6 +85,7 @@ public class FactDistinctColumnsReducer extends KylinReducer<SelfDefineSortableK
     private long timeMinValue = Long.MAX_VALUE;
     public static final String DICT_FILE_POSTFIX = ".rldict";
     public static final String PARTITION_COL_INFO_FILE_POSTFIX = ".pci";
+
 
     private MultipleOutputs mos;
 
@@ -166,22 +168,29 @@ public class FactDistinctColumnsReducer extends KylinReducer<SelfDefineSortableK
         Text key = skey.getText();
         if (isStatistics) {
             // for hll
-            long cuboidId = Bytes.toLong(key.getBytes(), 1, Bytes.SIZEOF_LONG);
-            for (Text value : values) {
-                HLLCounter hll = new HLLCounter(cubeConfig.getCubeStatsHLLPrecision());
-                ByteBuffer bf = ByteBuffer.wrap(value.getBytes(), 0, value.getLength());
-                hll.readRegisters(bf);
-
-                totalRowsBeforeMerge += hll.getCountEstimate();
-
-                if (cuboidId == baseCuboidId) {
-                    baseCuboidRowCountInMappers.add(hll.getCountEstimate());
+            if (isMapperRowCounter(key)) {
+                for (Text value : values) {
+                    long count = Bytes.toLong(value.getBytes());
+                    factTableRowCount += count;
                 }
+            } else {
+                long cuboidId = Bytes.toLong(key.getBytes(), 2, Bytes.SIZEOF_LONG);
+                for (Text value : values) {
+                    HLLCounter hll = new HLLCounter(cubeConfig.getCubeStatsHLLPrecision());
+                    ByteBuffer bf = ByteBuffer.wrap(value.getBytes(), 0, value.getLength());
+                    hll.readRegisters(bf);
 
-                if (cuboidHLLMap.get(cuboidId) != null) {
-                    cuboidHLLMap.get(cuboidId).merge(hll);
-                } else {
-                    cuboidHLLMap.put(cuboidId, hll);
+                    totalRowsBeforeMerge += hll.getCountEstimate();
+
+                    if (cuboidId == baseCuboidId) {
+                        baseCuboidRowCountInMappers.add(hll.getCountEstimate());
+                    }
+
+                    if (cuboidHLLMap.get(cuboidId) != null) {
+                        cuboidHLLMap.get(cuboidId).merge(hll);
+                    } else {
+                        cuboidHLLMap.put(cuboidId, hll);
+                    }
                 }
             }
         } else if (isPartitionCol) {
@@ -206,6 +215,13 @@ public class FactDistinctColumnsReducer extends KylinReducer<SelfDefineSortableK
         }
 
         rowCount++;
+    }
+
+    private boolean isMapperRowCounter(Text key) {
+        byte mark = key.getBytes()[1];
+        if (mark == FactDistinctColumnsMapper.MARK_FOR_FACT_TABLE_ROW_COUNT)
+            return true;
+        return false;
     }
 
     private void logAFewRows(String value) {
@@ -277,6 +293,9 @@ public class FactDistinctColumnsReducer extends KylinReducer<SelfDefineSortableK
 
         // mapper number at key -2
         mos.write(BatchConstants.CFG_OUTPUT_STATISTICS, new LongWritable(-2), new BytesWritable(Bytes.toBytes(baseCuboidRowCountInMappers.size())), statisticsFileName);
+
+        // mapper total row count at key -3
+        mos.write(BatchConstants.CFG_OUTPUT_STATISTICS, new LongWritable(-3), new BytesWritable(Bytes.toBytes(factTableRowCount)), statisticsFileName);
 
         // sampling percentage at key 0
         mos.write(BatchConstants.CFG_OUTPUT_STATISTICS, new LongWritable(0L), new BytesWritable(Bytes.toBytes(samplingPercentage)), statisticsFileName);
