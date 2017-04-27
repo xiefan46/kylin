@@ -49,6 +49,8 @@ public class DictionaryDimEnc extends DimensionEncoding implements Serializable 
     private int roundingFlag;
     private byte defaultByte;
 
+    private DictionarySerializer dictionarySerializer = new DictionarySerializer();
+
     public DictionaryDimEnc() {
     }
 
@@ -92,27 +94,15 @@ public class DictionaryDimEnc extends DimensionEncoding implements Serializable 
 
     @Override
     public void encode(String valueStr, byte[] output, int outputOffset) {
-        try {
-            int id = dict.getIdFromValue(valueStr, roundingFlag);
-            BytesUtil.writeUnsigned(id, output, outputOffset, fixedLen);
-        } catch (IllegalArgumentException ex) {
-            for (int i = outputOffset; i < outputOffset + fixedLen; i++) {
-                output[i] = defaultByte;
-            }
-            logger.error("Can't translate value " + valueStr + " to dictionary ID, roundingFlag " + roundingFlag + ". Using default value " + String.format("\\x%02X", defaultByte));
-        }
+        ByteBuffer buf = ByteBuffer.wrap(output, outputOffset, output.length - outputOffset);
+        dictionarySerializer.serialize(valueStr, buf);
     }
 
     @Override
     public String decode(byte[] bytes, int offset, int len) {
-        int id = BytesUtil.readUnsigned(bytes, offset, len);
-        try {
-            String value = dict.getValueFromId(id);
-            return value;
-        } catch (IllegalArgumentException e) {
-            logger.error("Can't get dictionary value from " + dict + " (id = " + id + ")");
-            return "";
-        }
+        ByteBuffer buf = ByteBuffer.wrap(bytes, offset, len);
+        Object value = dictionarySerializer.deserialize(buf);
+        return value == null ? null : value.toString();
     }
 
     @Override
